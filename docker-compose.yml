@@ -12,7 +12,7 @@ services:
               count: 1
               capabilities: ["gpu"]
     environment:
-      - MODEL_NAME=Qwen/Qwen2-VL-7B-Instruct
+      - MODEL_NAME=Qwen/Qwen3-VL-8B
       - ENABLE_BNB_INT4=1
     ports:
       - "8000:8000"

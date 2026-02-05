@@ -75,7 +75,10 @@ def infer(image, prompt: str) -> str:
             "top_p": settings.top_p,
         }
         url_primary = f"{settings.lmstudio_base_url}/api/v1/chat"
-        resp = httpx.post(url_primary, json=payload_primary, headers=headers, timeout=240)
+    try:
+        resp = httpx.post(url_primary, json=payload_primary, headers=headers, timeout=settings.request_timeout)
+    except httpx.TimeoutException:
+        raise RuntimeError("LM Studio timeout. Increase REQUEST_TIMEOUT or reduce MAX_NEW_TOKENS.")
 
         # Fallback to OpenAI-style if endpoint not found
         if resp.status_code == 404:

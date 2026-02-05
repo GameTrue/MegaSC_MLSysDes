@@ -9,7 +9,7 @@ def load_image(file_bytes: bytes) -> Image.Image:
     if image.format and image.format.upper() not in SUPPORTED_FORMATS:
         image = image.convert("RGB")
     # resize to fit within 1024 px on the longest side to stay within LM Studio limits
-    max_side = 768
+    max_side = 1024
     w, h = image.size
     if max(w, h) > max_side:
         scale = max_side / max(w, h)

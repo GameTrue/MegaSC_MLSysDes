@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Diagram Analyzer</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1224;
+      --panel: #0f172a;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --error: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 16px;
+      background: radial-gradient(circle at 20% 20%, #0b1224 0, #0b1224 30%, #070d1a 100%);
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      display: flex; justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .shell { width: min(1100px, 100%); height: 100%; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.35);
+      height: calc(100vh - 32px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    h1 { margin: 0 0 6px; letter-spacing: -0.02em; }
+    p.lead { margin: 0 0 16px; color: var(--muted); }
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+    input[type=file] {
+      border: 1px dashed var(--border);
+      background: rgba(255,255,255,0.02);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 360px;
+    }
+    button {
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+      background: linear-gradient(90deg, #1d4ed8, #0ea5e9);
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform .1s ease, box-shadow .1s ease, opacity .2s;
+    }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(14,165,233,0.35); }
+    .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 14px; margin-top: 14px; height: 100%; min-height: 0; }
+    .sidebar { border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.02); padding: 10px; max-height: 100%; overflow-y: auto; scrollbar-width: none; }
+    .sidebar::-webkit-scrollbar { display: none; }
+    .sidebar button { width: 100%; text-align: left; background: transparent; border: 1px solid var(--border); margin-bottom: 8px; }
+    .sidebar button.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .content { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: rgba(255,255,255,0.02); position: relative; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+    .tabs { position: sticky; bottom: 0; align-self: flex-end; display: flex; gap: 8px; padding-top: 8px; background: rgba(15,23,42,0.85); }
+    .tabs button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); }
+    .tabs button.active { border-color: var(--accent); color: var(--accent); }
+    #content-area { flex: 1; overflow: auto; scrollbar-width: none; min-height: 0; padding-bottom: 10px; }
+    #content-area::-webkit-scrollbar { display: none; }
+    pre { background: #0b1224; border: 1px solid var(--border); border-radius: 8px; padding: 10px; overflow: auto; margin: 0; font-size: 13px; min-height: 0; max-height: 100%; }
+    .error { color: var(--error); margin-top: 6px; }
+    .status { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    img.preview { max-width: 100%; max-height: 60vh; display: block; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="panel">
+      <h1>Diagram Analyzer</h1>
+      <p class="lead">Прикрепите один или несколько файлов (PNG/JPG/WEBP) и получите структурированный JSON со связями шагов.</p>
+      <div class="controls">
+        <input type="file" id="files" multiple accept="image/*">
+        <button id="send">Отправить</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div class="layout">
+        <div class="sidebar" id="file-list"></div>
+        <div class="content">
+          <div id="content-area"></div>
+          <div class="tabs">
+            <button id="tab-json" class="active">JSON</button>
+            <button id="tab-image">Изображение</button>
+            <button id="tab-diagram">Диаграмма</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    let results = [];
+    let selected = 0;
+    let activeTab = 'json';
+
+    function renderList() {
+      const list = document.getElementById('file-list');
+      list.innerHTML = '';
+      results.forEach((item, idx) => {
+        const btn = document.createElement('button');
+        const status = item.status ? ` • ${item.status}` : '';
+        btn.textContent = item.name + status;
+        btn.className = idx === selected ? 'active' : '';
+        btn.onclick = () => { selected = idx; renderList(); renderContent(); };
+        list.appendChild(btn);
+      });
+    }
+
+    function renderContent() {
+      const area = document.getElementById('content-area');
+      if (!results.length) { area.innerHTML = '<div class="status">Нет данных</div>'; return; }
+      const item = results[selected];
+      if (!item.json) {
+        area.innerHTML = '<div class="status">Обрабатываем...</div>';
+      } else if (activeTab === 'json') {
+        area.innerHTML = '<pre>'+JSON.stringify(item.json, null, 2)+'</pre>';
+      } else if (activeTab === 'image') {
+        area.innerHTML = item.imgDataUrl ? '<img class="preview" src="'+item.imgDataUrl+'"/>' : '<div class="status">Нет изображения</div>';
+      } else {
+        area.innerHTML = '<div class="status">Диаграмма (скоро)</div>';
+      }
+      document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tab-'+activeTab).classList.add('active');
+    }
+
+    async function readAsDataURL(file) {
+      return await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function sendFiles() {
+      const input = document.getElementById('files');
+      if (!input.files.length) return alert('Выберите файл(ы)');
+      const btn = document.getElementById('send');
+      const out = document.getElementById('status');
+      results = [];
+      selected = 0;
+      renderList();
+      renderContent();
+      btn.disabled = true;
+      out.innerHTML = 'Отправляем и ждём ответ...';
+
+      const files = Array.from(input.files);
+      const dataUrls = await Promise.all(files.map(readAsDataURL));
+
+      const tasks = files.map((file, idx) => processFile(file, dataUrls[idx]));
+      await Promise.all(tasks);
+      out.innerHTML = '';
+      btn.disabled = false;
+    }
+
+    async function processFile(file, dataUrl) {
+      const idx = results.push({ name: file.name, status: 'в обработке', imgDataUrl: dataUrl, json: null }) - 1;
+      if (results.length === 1) selected = 0;
+      renderList();
+      renderContent();
+
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        const res = await fetch('/api/analyze', { method: 'POST', body: form });
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { error: 'Невалидный JSON', raw: text }; }
+        results[idx].json = data;
+        results[idx].status = res.ok ? 'готово' : `ошибка ${res.status}`;
+      } catch (e) {
+        results[idx].json = { error: String(e) };
+        results[idx].status = 'ошибка';
+      }
+      renderList();
+      renderContent();
+    }
+
+    function switchTab(tab) { activeTab = tab; renderContent(); }
+
+    document.getElementById('send').onclick = sendFiles;
+    document.getElementById('tab-json').onclick = () => switchTab('json');
+    document.getElementById('tab-image').onclick = () => switchTab('image');
+    document.getElementById('tab-diagram').onclick = () => switchTab('diagram');
+  </script>
+</body>
+</html>

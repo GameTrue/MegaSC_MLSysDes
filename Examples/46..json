@@ -1,0 +1,85 @@
+{
+  "filename": "46.png",
+  "diagram_type": "flowchart",
+  "description": "Диаграмма процесса заполнения роли с проверкой обязательных атрибутов.",
+  "steps": [
+    {
+      "step": 0,
+      "action": "Начало",
+      "role": null,
+      "type": "start",
+      "next_steps": [
+        {
+          "to": 1,
+          "label": ""
+        }
+      ]
+    },
+    {
+      "step": 1,
+      "action": "Выполнить сценарий выбора СФЛ/СЮЛ при назначении роли",
+      "role": null,
+      "type": "task",
+      "next_steps": []
+    },
+    {
+      "step": 2,
+      "action": "Заполнить сроки действия роли",
+      "role": null,
+      "type": "task",
+      "next_steps": [
+        {
+          "to": 3,
+          "label": ""
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "action": "Заполнить атрибуты роли",
+      "role": null,
+      "type": "task",
+      "next_steps": [
+        {
+          "to": 4,
+          "label": ""
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "action": "",
+      "role": null,
+      "type": "decision",
+      "next_steps": [
+        {
+          "to": 5,
+          "label": "нет"
+        },
+        {
+          "to": 6,
+          "label": "Заполнены все обязательные атрибуты этой роли"
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "action": "Заполнить все обязательные атрибуты этой роли",
+      "role": null,
+      "type": "task",
+      "next_steps": [
+        {
+          "to": 6,
+          "label": ""
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "action": "Конец",
+      "role": null,
+      "type": "end",
+      "next_steps": []
+    }
+  ]
+}

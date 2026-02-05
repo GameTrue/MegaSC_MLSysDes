@@ -8,8 +8,7 @@ def predict(image):
     text = model.infer(image, PROMPT_TEMPLATE)
     parsed = to_response(text)
     steps = "\n".join(f"{s.step}. {s.action}" + (f" ({s.role})" if s.role else "") for s in parsed.steps)
-    edges = "\n".join(f"{e.from_id} -> {e.to_id}" + (f" [{e.label}]" if e.label else "") for e in parsed.edges)
-    return parsed.diagram_type, parsed.description, steps, edges
+    return parsed.diagram_type, parsed.description, steps
 
 
 demo = gr.Interface(
@@ -19,7 +18,6 @@ demo = gr.Interface(
         gr.Textbox(label="Diagram type"),
         gr.Textbox(label="Description"),
         gr.Textbox(label="Steps"),
-        gr.Textbox(label="Edges"),
     ],
     title="Diagram Analyzer",
     description="Загрузите BPMN или блок-схему, чтобы получить структурированное описание",

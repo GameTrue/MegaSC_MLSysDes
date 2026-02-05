@@ -1,0 +1,43 @@
+{
+  "filename": "1.png",
+  "diagram_type": "flowchart",
+  "description": "ИК 7. Управление технологическим стеком",
+  "steps": [
+    {
+      "step": 1,
+      "action": "7.1. Принятие технологии",
+      "role": null,
+      "type": "task",
+      "next_steps": [
+        {
+          "to": 2,
+          "label": ""
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "action": "ИК 7.2. Использование технологии в продуктах",
+      "role": null,
+      "type": "task",
+      "next_steps": [
+        {
+          "to": 3,
+          "label": ""
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "action": "ИК 7.3. Отказ от технологии или изменение условий использования",
+      "role": null,
+      "type": "task",
+      "next_steps": [
+        {
+          "to": 2,
+          "label": ""
+        }
+      ]
+    }
+  ]
+}
