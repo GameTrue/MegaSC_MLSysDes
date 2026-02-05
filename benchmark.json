@@ -1,0 +1,21 @@
+{
+  "count": 3,
+  "avg_latency_s": 3.3928640683492026,
+  "items": [
+    {
+      "file": "Диаграммы. 2 часть\\Диаграммы. 2 часть\\Picture\\1.png",
+      "latency_s": 2.3915371894836426,
+      "output": "{\n  \"diagram_type\": \"bpmn\",\n  \"description\": \"A BPMN process flowchart showing a sequence of steps related to technology management.\",\n  \"steps\": [\n    {\"step\": 1, \"action\": \"text\", \"role\": null},\n    {\"step\": 2, \"action\": \"arrow\", \"role\": null},\n    {\"step\": 3, \"action\": \"text\", \"role\": null},\n    {\"step\": 4, \"action\": \"arrow\", \"role\": null},\n    {\"step\": 5, \"action\": \"text\", \"role\": null}\n  ]\n}"
+    },
+    {
+      "file": "Диаграммы. 2 часть\\Диаграммы. 2 часть\\Picture\\10.jpg",
+      "latency_s": 4.901162385940552,
+      "output": "```json\n{\n  \"diagram_type\": \"bpmn\",\n  \"description\": \"A BPMN process flowchart detailing the automation of business processes.\",\n  \"steps\": [\n    {\n      \"step\": 1,\n      \"action\": \"text\",\n      \"role\": \"Business user\"\n    },\n    {\n      \"step\": 2,\n      \"action\": \"text\",\n      \"role\": \"Business analyst\"\n    },\n    {\n      \"step\": 3,\n      \"action\": \"decision\",\n      \"role\": null\n    },\n    {\n      \"step\": 4,\n      \"action\": \"text\",\n      \"role\": \"Process owner\"\n    },\n    {\n      \"step\": 5,\n      \"action\": \"text\",\n      \"role\": \"RPA developer\"\n    },\n    {\n      \"step\": 6,\n      \"action\": \"text\",\n      \"role\": null\n    },\n    {\n      \"step\": 7,\n      \"action\": \"decision\",\n      \"role\": null\n    },\n    {\n      \"step\": 8,\n      \"action\": \"text\",\n      \"role\": \"Process owner\"\n    },\n    {\n      \"step\": 9,\n      \"action\": \"text\",\n      \"role\": \"Business user\"\n    }\n  ]\n}\n```"
+    },
+    {
+      "file": "Диаграммы. 2 часть\\Диаграммы. 2 часть\\Picture\\100.png",
+      "latency_s": 2.885892629623413,
+      "output": "```json\n{\n  \"diagram_type\": \"flowchart\",\n  \"description\": \"Sequence of tasks for deploying and configuring a streaming replication system.\",\n  \"steps\": [\n    {\"step\": 1, \"action\": \"Развертывание Primary\"},\n    {\"step\": 2, \"action\": \"Настройка streaming replication\"},\n    {\"step\": 3, \"action\": \"Настройка виртуального IP\"},\n    {\"step\": 4, \"action\": \"Развертывание реплик\"},\n    {\"step\": 5, \"action\": \"Настройка балансировщика\"},\n    {\"step\": 6, \"action\": \"Тест переключения при отказе\"},\n    {\"step\": 7, \"action\": \"Финиш\"}\n  ]\n}\n```"
+    }
+  ]
+}
