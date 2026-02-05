@@ -5,3 +5,4 @@
 /.venv/Lib/site-packages
 /Диаграммы. 2 часть
 /Диаграммы/Диаграммы
+/app/__pycache__

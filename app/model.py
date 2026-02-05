@@ -17,7 +17,12 @@ def get_model_bundle() -> Dict[str, Any]:
 
     quantization_config = None
     if settings.enable_bnb_int4 and settings.device.startswith("cuda"):
-        quantization_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16)
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+        )
     model = AutoModelForCausalLM.from_pretrained(
         settings.model_id,
         device_map="auto",
@@ -54,7 +59,12 @@ def infer(image, prompt: str) -> str:
         buffered = BytesIO()
         image.save(buffered, format="PNG")
         b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-        payload = {
+        headers = {"Content-Type": "application/json"}
+        if settings.lmstudio_token:
+            headers["Authorization"] = f"Bearer {settings.lmstudio_token}"
+
+        # Primary LM Studio multimodal endpoint
+        payload_primary = {
             "model": settings.model_id,
             "input": [
                 {"type": "image", "data_url": f"data:image/png;base64,{b64}"},
@@ -64,14 +74,30 @@ def infer(image, prompt: str) -> str:
             "temperature": settings.temperature,
             "top_p": settings.top_p,
         }
-        headers = {"Content-Type": "application/json"}
-        if settings.lmstudio_token:
-            headers["Authorization"] = f"Bearer {settings.lmstudio_token}"
-        resp = httpx.post(f"{settings.lmstudio_base_url}/api/v1/chat", json=payload, headers=headers, timeout=240)
+        url_primary = f"{settings.lmstudio_base_url}/api/v1/chat"
+        resp = httpx.post(url_primary, json=payload_primary, headers=headers, timeout=240)
+
+        # Fallback to OpenAI-style if endpoint not found
+        if resp.status_code == 404:
+            payload_fallback = {
+                "model": settings.model_id,
+                "messages": [
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": "Проанализируй диаграмму"},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}},
+                    ]},
+                ],
+                "temperature": settings.temperature,
+                "top_p": settings.top_p,
+                "max_tokens": settings.max_new_tokens,
+            }
+            resp = httpx.post(f"{settings.lmstudio_base_url}/v1/chat/completions", json=payload_fallback, headers=headers, timeout=240)
+
         resp.raise_for_status()
         data = resp.json()
         if "choices" in data and data["choices"]:
-            return data["choices"][0]["message"]["content"]
+            return data["choices"][0].get("message", {}).get("content", "") or data["choices"][0].get("text", "")
         if "output" in data:
             out = data["output"]
             if isinstance(out, list) and out:

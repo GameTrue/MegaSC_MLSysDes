@@ -1,13 +1,24 @@
 PROMPT_TEMPLATE = """
-You are a BPMN/block-diagram analyzer. Given an input diagram image, describe the algorithm and return structured JSON.
-Respond ONLY with JSON using this schema:
+You are an OCR-strong diagram analyst. Given a BPMN or flowchart image in Russian, extract the actual Russian text labels and return ONLY JSON:
 {
   "diagram_type": "bpmn|flowchart|other",
-  "description": "short overall description",
+  "description": "short overall description in Russian",
   "steps": [
-    {"step": 1, "action": "text", "role": "optional lane/actor"},
-    ...
+    {
+      "id": 1,
+      "action": "exact node text in Russian + shape type (start/end/task/decision)",
+      "role": "lane/actor if present or null",
+      "next_steps": [
+        {"to": 2, "label": "arrow text if any (да/нет/…)"}
+      ]
+    }
   ]
 }
-Keep steps ordered. Include roles only when present in diagram lanes/pools. Be concise but complete.
+Rules:
+- Preserve Russian text verbatim (no translation).
+- Keep steps in visual order top-to-bottom following arrows.
+- If a diamond/decision has a small label (да/нет), include it in the action.
+- For arrows with labels (e.g., "нет", "да") put them in next_steps.label.
+- Do NOT emit placeholders like "text" or "arrow" — always OCR real text; if none exists, write "без текста".
+- If text is multiline, concatenate with spaces.
 """

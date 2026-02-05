@@ -54,11 +54,61 @@ def web_ui():
   <meta charset="UTF-8" />
   <title>Diagram Analyzer</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; }
-    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-top: 16px; }
-    pre { background: #f7f7f7; padding: 8px; overflow-x: auto; }
-    button { padding: 8px 16px; }
-    .error { color: #b00020; }
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1224;
+      --panel: #0f172a;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --error: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 32px;
+      background: radial-gradient(circle at 20% 20%, #0b1224 0, #0b1224 30%, #070d1a 100%);
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      display: flex; justify-content: center;
+    }
+    .shell { width: min(1100px, 100%); }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 26px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.35);
+    }
+    h1 { margin: 0 0 6px; letter-spacing: -0.02em; }
+    p.lead { margin: 0 0 16px; color: var(--muted); }
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+    input[type=file] {
+      border: 1px dashed var(--border);
+      background: rgba(255,255,255,0.02);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 360px;
+    }
+    button {
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+      background: linear-gradient(90deg, #1d4ed8, #0ea5e9);
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform .1s ease, box-shadow .1s ease, opacity .2s;
+    }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(14,165,233,0.35); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; margin-top: 12px; }
+    .card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: rgba(255,255,255,0.02); }
+    .card h3 { margin: 0 0 6px; font-size: 15px; }
+    pre { background: #0b1224; border: 1px solid var(--border); border-radius: 8px; padding: 10px; overflow-x: auto; margin: 6px 0 0; font-size: 13px; }
+    .error { color: var(--error); margin-top: 6px; }
+    .status { color: var(--muted); font-size: 13px; margin-top: 6px; }
   </style>
   <script>
     async function sendFiles() {
@@ -69,7 +119,7 @@ def web_ui():
       const btn = document.getElementById('send');
       const out = document.getElementById('out');
       btn.disabled = true;
-      out.innerHTML = 'Отправка...';
+      out.innerHTML = '<div class="status">Отправляем и ждём ответ...</div>';
       try {
         const res = await fetch('/api/analyze/batch', { method: 'POST', body: form });
         const text = await res.text();
@@ -81,12 +131,15 @@ def web_ui():
           return;
         }
         if (data.items) {
+          const grid = document.createElement('div');
+          grid.className = 'grid';
           data.items.forEach(item => {
             const div = document.createElement('div');
             div.className = 'card';
             div.innerHTML = `<h3>${item.filename || 'file'}</h3><pre>${JSON.stringify(item, null, 2)}</pre>`;
-            out.appendChild(div);
+            grid.appendChild(div);
           });
+          out.appendChild(grid);
         } else {
           out.textContent = JSON.stringify(data, null, 2);
         }
@@ -99,11 +152,17 @@ def web_ui():
   </script>
 </head>
 <body>
-  <h1>Diagram Analyzer</h1>
-  <p>Прикрепите один или несколько файлов (PNG/JPG/WEBP), нажмите «Отправить» и получите JSON.</p>
-  <input type="file" id="files" multiple accept="image/*">
-  <button id="send" onclick="sendFiles()">Отправить</button>
-  <div id="out"></div>
+  <div class="shell">
+    <div class="panel">
+      <h1>Diagram Analyzer</h1>
+      <p class="lead">Прикрепите один или несколько файлов (PNG/JPG/WEBP) и получите структурированный JSON со связями шагов.</p>
+      <div class="controls">
+        <input type="file" id="files" multiple accept="image/*">
+        <button id="send" onclick="sendFiles()">Отправить</button>
+      </div>
+      <div id="out" class="grid"></div>
+    </div>
+  </div>
 </body>
 </html>
     """
