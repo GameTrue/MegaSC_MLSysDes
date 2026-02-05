@@ -12,6 +12,7 @@ from app.config import settings
 
 @lru_cache(maxsize=1)
 def get_model_bundle() -> Dict[str, Any]:
+    # When using LM Studio or dummy, we don't load local HF model
     if settings.use_dummy or settings.use_lmstudio:
         return {"model": None, "processor": None}
 
@@ -23,6 +24,7 @@ def get_model_bundle() -> Dict[str, Any]:
             bnb_4bit_quant_type="nf4",
             bnb_4bit_compute_dtype=torch.bfloat16,
         )
+
     model = AutoModelForCausalLM.from_pretrained(
         settings.model_id,
         device_map="auto",
@@ -42,7 +44,7 @@ def get_model_bundle() -> Dict[str, Any]:
 
 
 def infer(image, prompt: str) -> str:
-    bundle = get_model_bundle()
+    # Dummy path for CI
     if settings.use_dummy:
         return """
 {
@@ -55,15 +57,16 @@ def infer(image, prompt: str) -> str:
 }
 """.strip()
 
+    # LM Studio path
     if settings.use_lmstudio:
         buffered = BytesIO()
         image.save(buffered, format="PNG")
         b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
         headers = {"Content-Type": "application/json"}
         if settings.lmstudio_token:
             headers["Authorization"] = f"Bearer {settings.lmstudio_token}"
 
-        # Primary LM Studio multimodal endpoint
         payload_primary = {
             "model": settings.model_id,
             "input": [
@@ -74,13 +77,13 @@ def infer(image, prompt: str) -> str:
             "temperature": settings.temperature,
             "top_p": settings.top_p,
         }
-        url_primary = f"{settings.lmstudio_base_url}/api/v1/chat"
-    try:
-        resp = httpx.post(url_primary, json=payload_primary, headers=headers, timeout=settings.request_timeout)
-    except httpx.TimeoutException:
-        raise RuntimeError("LM Studio timeout. Increase REQUEST_TIMEOUT or reduce MAX_NEW_TOKENS.")
 
-        # Fallback to OpenAI-style if endpoint not found
+        url_primary = f"{settings.lmstudio_base_url}/api/v1/chat"
+        try:
+            resp = httpx.post(url_primary, json=payload_primary, headers=headers, timeout=settings.request_timeout)
+        except httpx.TimeoutException:
+            raise RuntimeError("LM Studio timeout. Increase REQUEST_TIMEOUT or reduce MAX_NEW_TOKENS.")
+
         if resp.status_code == 404:
             payload_fallback = {
                 "model": settings.model_id,
@@ -95,7 +98,12 @@ def infer(image, prompt: str) -> str:
                 "top_p": settings.top_p,
                 "max_tokens": settings.max_new_tokens,
             }
-            resp = httpx.post(f"{settings.lmstudio_base_url}/v1/chat/completions", json=payload_fallback, headers=headers, timeout=240)
+            resp = httpx.post(
+                f"{settings.lmstudio_base_url}/v1/chat/completions",
+                json=payload_fallback,
+                headers=headers,
+                timeout=settings.request_timeout,
+            )
 
         resp.raise_for_status()
         data = resp.json()
@@ -110,6 +118,8 @@ def infer(image, prompt: str) -> str:
                 return str(first)
         return str(data)
 
+    # Local HF model path
+    bundle = get_model_bundle()
     model = bundle["model"]
     processor = bundle["processor"]
     first_param_device = next(model.parameters()).device
