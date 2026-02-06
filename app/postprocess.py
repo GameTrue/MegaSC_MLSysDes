@@ -43,28 +43,6 @@ def normalize_action(action: str) -> str:
     return " ".join(action.split())
 
 
-_REPETITION_THRESHOLD = 3  # consecutive identical actions to trigger truncation
-
-
-def _dedup_steps(steps: List[Step]) -> List[Step]:
-    """Remove repetition loops: if the same action appears >=3 times in a row, keep only the first."""
-    if len(steps) <= _REPETITION_THRESHOLD:
-        return steps
-    cleaned: List[Step] = []
-    repeat_count = 0
-    for step in steps:
-        if cleaned and step.action == cleaned[-1].action and step.action:
-            repeat_count += 1
-            if repeat_count >= _REPETITION_THRESHOLD:
-                continue  # skip repetitive step
-        else:
-            repeat_count = 0
-        cleaned.append(step)
-    if len(cleaned) < len(steps):
-        logger.warning("Removed %d repetitive steps (loop detected)", len(steps) - len(cleaned))
-    return cleaned
-
-
 def to_response(raw_text: str) -> AnalyzeResponse:
     payload = extract_json(raw_text)
 
@@ -99,8 +77,6 @@ def to_response(raw_text: str) -> AnalyzeResponse:
             if isinstance(ns, dict):
                 cleaned_next.append({"to": ns.get("to"), "label": ns.get("label", "")})
         steps.append(Step(step=step_id, action=action, role=role, type=shape_type, next_steps=cleaned_next))
-
-    steps = _dedup_steps(steps)
 
     if not steps:
         steps.append(Step(step=1, action=description[:140] or "", role=None, type=None, next_steps=[]))

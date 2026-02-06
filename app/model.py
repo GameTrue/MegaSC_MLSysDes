@@ -62,22 +62,6 @@ def _parse_lmstudio_response(data: dict) -> str:
     raise RuntimeError(f"Unexpected LM Studio response format: {data}")
 
 
-_MAX_EXTRACTED_TEXT_CHARS = 4000  # Limit OCR/SVG text hint to avoid oversized prompts
-
-
-def _encode_image_b64(img) -> tuple[str, str]:
-    """Encode PIL image to base64, preferring JPEG for smaller payloads."""
-    # Use JPEG for RGB images (much smaller than PNG for photos/diagrams)
-    if img.mode == "RGB":
-        buf = BytesIO()
-        img.save(buf, format="JPEG", quality=85)
-        return base64.b64encode(buf.getvalue()).decode("utf-8"), "image/jpeg"
-    # Fallback to PNG for RGBA or other modes
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("utf-8"), "image/png"
-
-
 def _build_vision_payload(image, prompt: str, extracted_text: str | None = None) -> dict:
     images = image if isinstance(image, list) else [image]
     is_tiled = len(images) > 1
@@ -89,20 +73,18 @@ def _build_vision_payload(image, prompt: str, extracted_text: str | None = None)
             "Проанализируй как единое целое.\n\n" + full_prompt
         )
     if extracted_text:
-        # Truncate to prevent oversized prompts
-        hint = extracted_text[:_MAX_EXTRACTED_TEXT_CHARS]
-        if len(extracted_text) > _MAX_EXTRACTED_TEXT_CHARS:
-            hint += "\n... (текст обрезан)"
         full_prompt += (
             "\n\nИз файла извлечён следующий текст (используй его как ТОЧНЫЙ справочник"
             " — копируй эти строки дословно в поле action):\n"
-            "---\n" + hint + "\n---"
+            "---\n" + extracted_text + "\n---"
         )
 
     content = []
     for img in images:
-        b64, mime = _encode_image_b64(img)
-        content.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}})
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")
+        b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        content.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}})
     content.append({"type": "text", "text": full_prompt})
 
     return {
@@ -111,7 +93,6 @@ def _build_vision_payload(image, prompt: str, extracted_text: str | None = None)
         "temperature": settings.temperature,
         "top_p": settings.top_p,
         "max_tokens": settings.max_new_tokens,
-        "frequency_penalty": settings.frequency_penalty,
     }
 
 
@@ -165,7 +146,6 @@ async def infer_text(prompt: str) -> str:
             "temperature": settings.temperature,
             "top_p": settings.top_p,
             "max_tokens": settings.max_new_tokens,
-            "frequency_penalty": settings.frequency_penalty,
         }
         url = f"{settings.lmstudio_base_url}/v1/chat/completions"
         logger.debug("LM Studio text request to %s", url)
