@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import time
 from pathlib import Path
 import json
@@ -6,6 +7,10 @@ from PIL import Image
 
 from app import model
 from app.prompt import PROMPT_TEMPLATE
+
+
+async def _infer_one(image):
+    return await model.infer(image, PROMPT_TEMPLATE)
 
 
 def bench(images_dir: Path, limit: int | None):
@@ -16,7 +21,7 @@ def bench(images_dir: Path, limit: int | None):
     for path in files:
         image = Image.open(path).convert("RGB")
         start = time.time()
-        text = model.infer(image, PROMPT_TEMPLATE)
+        text = asyncio.run(_infer_one(image))
         latency = time.time() - start
         results.append({"file": str(path), "latency_s": latency, "output": text})
         print(f"{path.name}: {latency:.2f}s")

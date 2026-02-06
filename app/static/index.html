@@ -59,16 +59,22 @@
     }
     button:disabled { opacity: .4; cursor: not-allowed; }
     button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(14,165,233,0.35); }
-    #stop-btn {
-      background: linear-gradient(90deg, #b91c1c, #ef4444);
-      border-color: var(--error);
-      display: none;
+    .file-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .file-row button.file-btn { flex: 1; margin-bottom: 0; }
+    .file-row .cancel-btn {
+      flex-shrink: 0; width: 32px; height: 32px; padding: 0;
+      border-radius: 8px; border: 2px solid var(--error);
+      background: rgba(239,68,68,0.25); color: #ff6b6b;
+      font-size: 18px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
     }
+    .file-row .cancel-btn:hover { background: rgba(239,68,68,0.5); color: #fff; box-shadow: 0 0 12px rgba(239,68,68,0.4); }
     .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 14px; margin-top: 14px; height: 100%; min-height: 0; }
     .sidebar { border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.02); padding: 10px; max-height: 100%; overflow-y: auto; scrollbar-width: none; }
     .sidebar::-webkit-scrollbar { display: none; }
-    .sidebar button { width: 100%; text-align: left; background: transparent; border: 1px solid var(--border); margin-bottom: 8px; }
-    .sidebar button.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .sidebar .file-btn { width: 100%; text-align: left; background: transparent; border: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sidebar .file-btn.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
     .content { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: rgba(255,255,255,0.02); position: relative; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
     .tabs { position: sticky; bottom: 0; align-self: flex-end; display: flex; gap: 8px; padding-top: 8px; background: rgba(15,23,42,0.85); }
     .tabs button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); }
@@ -78,7 +84,25 @@
     pre { background: #0b1224; border: 1px solid var(--border); border-radius: 8px; padding: 10px; overflow: auto; margin: 0; font-size: 13px; min-height: 0; max-height: 100%; }
     .error { color: var(--error); margin-top: 6px; }
     .status { color: var(--muted); font-size: 13px; margin-top: 6px; }
-    img.preview { max-width: 100%; max-height: 60vh; display: block; margin: 0 auto; }
+    .zoomable { position: relative; flex: 1; overflow: auto; min-height: 0; }
+    .zoomable-inner { transform-origin: 0 0; transition: transform 0.15s ease; min-width: fit-content; }
+    .zoom-controls { display: flex; gap: 4px; position: absolute; top: 8px; right: 8px; z-index: 10; }
+    .zoom-controls button { width: 32px; height: 32px; padding: 0; border-radius: 6px; font-size: 16px; border: 1px solid var(--border); background: var(--panel); color: var(--text); display: flex; align-items: center; justify-content: center; }
+    .zoom-controls button:hover { border-color: var(--accent); }
+    img.preview { max-width: 100%; display: block; margin: 0 auto; }
+    #mermaid-output svg { max-width: 100%; }
+    .steps-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .steps-table th { background: #1e293b; text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--accent); font-weight: 600; }
+    .steps-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .steps-table tr:hover td { background: rgba(56,189,248,0.05); }
+    .steps-table .col-num { width: 40px; text-align: center; font-weight: 700; color: var(--accent); }
+    .steps-table .col-role { width: 160px; color: var(--muted); }
+    .steps-table .type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 6px; }
+    .steps-table .type-start { background: rgba(34,197,94,0.2); color: #4ade80; }
+    .steps-table .type-end { background: rgba(239,68,68,0.2); color: #f87171; }
+    .steps-table .type-decision { background: rgba(251,191,36,0.2); color: #fbbf24; }
+    .steps-table .type-subprocess { background: rgba(168,85,247,0.2); color: #c084fc; }
+    .table-desc { color: var(--muted); font-size: 13px; margin-bottom: 10px; font-style: italic; }
   </style>
 </head>
 <body>
@@ -89,7 +113,7 @@
       <div class="controls">
         <input type="file" id="files" multiple accept="image/*,.pdf,.svg">
         <button id="send">Отправить</button>
-        <button id="stop-btn">Остановить</button>
+        <button id="export-btn" style="background: linear-gradient(90deg,#065f46,#10b981); border-color: #10b981;">Экспорт всех</button>
       </div>
       <div id="status" class="status"></div>
       <div class="layout">
@@ -97,7 +121,8 @@
         <div class="content">
           <div id="content-area"></div>
           <div class="tabs">
-            <button id="tab-json" class="active">JSON</button>
+            <button id="tab-table" class="active">Таблица</button>
+            <button id="tab-json">JSON</button>
             <button id="tab-image">Изображение</button>
             <button id="tab-diagram">Диаграмма</button>
           </div>
@@ -108,19 +133,44 @@
   <script>
     let results = [];
     let selected = 0;
-    let activeTab = 'json';
-    let controllers = [];
+    let activeTab = 'table';
 
     function renderList() {
       const list = document.getElementById('file-list');
       list.innerHTML = '';
       results.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'file-row';
+
         const btn = document.createElement('button');
+        btn.className = 'file-btn' + (idx === selected ? ' active' : '');
         const status = item.status ? ` • ${item.status}` : '';
         btn.textContent = item.name + status;
-        btn.className = idx === selected ? 'active' : '';
         btn.onclick = () => { selected = idx; renderList(); renderContent(); };
-        list.appendChild(btn);
+        row.appendChild(btn);
+
+        if (item.controller && item.status === 'в обработке') {
+          const cancel = document.createElement('button');
+          cancel.className = 'cancel-btn';
+          cancel.textContent = '\u2715';
+          cancel.title = 'Отменить';
+          cancel.onclick = (e) => { e.stopPropagation(); item.controller.abort(); };
+          row.appendChild(cancel);
+        } else if (!item.controller) {
+          const del = document.createElement('button');
+          del.className = 'cancel-btn';
+          del.textContent = '\u2715';
+          del.title = 'Удалить';
+          del.onclick = (e) => {
+            e.stopPropagation();
+            results.splice(idx, 1);
+            if (selected >= results.length) selected = Math.max(0, results.length - 1);
+            renderList(); renderContent();
+          };
+          row.appendChild(del);
+        }
+
+        list.appendChild(row);
       });
     }
 
@@ -142,27 +192,31 @@
         div.className = 'status';
         div.textContent = 'Обрабатываем...';
         area.appendChild(div);
+      } else if (activeTab === 'table') {
+        renderTable(item.json, area);
       } else if (activeTab === 'json') {
         const pre = document.createElement('pre');
         pre.textContent = JSON.stringify(item.json, null, 2);
         area.appendChild(pre);
       } else if (activeTab === 'image') {
         if (item.imgDataUrl) {
+          const wrap = makeZoomable();
           const img = document.createElement('img');
           img.className = 'preview';
           img.src = item.imgDataUrl;
-          area.appendChild(img);
+          wrap.inner.appendChild(img);
+          area.appendChild(wrap.el);
         } else {
           const div = document.createElement('div');
           div.className = 'status';
           div.textContent = 'Нет изображения';
           area.appendChild(div);
         }
-      } else {
-        const div = document.createElement('div');
-        div.className = 'status';
-        div.textContent = 'Диаграмма (скоро)';
-        area.appendChild(div);
+      } else if (activeTab === 'diagram') {
+        const wrap = makeZoomable();
+        wrap.inner.id = 'mermaid-output';
+        area.appendChild(wrap.el);
+        renderMermaidFromJson(item.json, wrap.inner);
       }
       document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
       document.getElementById('tab-'+activeTab).classList.add('active');
@@ -176,48 +230,43 @@
       });
     }
 
-    function setProcessing(active) {
-      document.getElementById('send').disabled = active;
-      document.getElementById('send').style.display = active ? 'none' : '';
-      document.getElementById('stop-btn').style.display = active ? 'inline-block' : 'none';
+    // --- Очередь запросов (макс 1 одновременно, чтобы не перегрузить LM Studio) ---
+    const MAX_CONCURRENT = 1;
+    let running = 0;
+    const queue = [];
+
+    function enqueue(fn) {
+      queue.push(fn);
+      drainQueue();
     }
 
-    function stopAll() {
-      controllers.forEach(c => c.abort());
-      controllers = [];
-      setProcessing(false);
-      document.getElementById('status').textContent = 'Обработка остановлена';
+    async function drainQueue() {
+      while (running < MAX_CONCURRENT && queue.length) {
+        running++;
+        const fn = queue.shift();
+        fn().finally(() => { running--; drainQueue(); });
+      }
     }
 
     async function sendFiles() {
       const input = document.getElementById('files');
       if (!input.files.length) return alert('Выберите файл(ы)');
-      const out = document.getElementById('status');
-      results = [];
-      selected = 0;
-      controllers = [];
-      renderList();
-      renderContent();
-      setProcessing(true);
-      out.textContent = 'Отправляем и ждём ответ...';
 
       const files = Array.from(input.files);
+      input.value = '';
       const dataUrls = await Promise.all(files.map(f => f.type.startsWith('image/') ? readAsDataURL(f) : null));
-
-      const tasks = files.map((file, idx) => processFile(file, dataUrls[idx]));
-      await Promise.all(tasks);
-      out.textContent = '';
-      setProcessing(false);
+      files.forEach((file, i) => {
+        const controller = new AbortController();
+        const idx = results.push({ name: file.name, status: 'в очереди', imgDataUrl: dataUrls[i], json: null, controller }) - 1;
+        if (results.length === 1) selected = 0;
+        renderList(); renderContent();
+        enqueue(() => processFile(idx, file, controller));
+      });
     }
 
-    async function processFile(file, dataUrl) {
-      const idx = results.push({ name: file.name, status: 'в обработке', imgDataUrl: dataUrl, json: null }) - 1;
-      if (results.length === 1) selected = 0;
-      renderList();
-      renderContent();
-
-      const controller = new AbortController();
-      controllers.push(controller);
+    async function processFile(idx, file, controller) {
+      results[idx].status = 'в обработке';
+      renderList(); renderContent();
 
       const form = new FormData();
       form.append('file', file);
@@ -240,17 +289,215 @@
           results[idx].status = 'ошибка';
         }
       }
+      results[idx].controller = null;
       renderList();
       renderContent();
+    }
+
+    // --- Зум ---
+    function makeZoomable() {
+      let scale = 1;
+      const el = document.createElement('div');
+      el.className = 'zoomable';
+      const inner = document.createElement('div');
+      inner.className = 'zoomable-inner';
+      const controls = document.createElement('div');
+      controls.className = 'zoom-controls';
+      const btnPlus = document.createElement('button'); btnPlus.textContent = '+';
+      const btnMinus = document.createElement('button'); btnMinus.textContent = '\u2212';
+      const btnReset = document.createElement('button'); btnReset.textContent = '\u21BA';
+      function apply() { inner.style.transform = `scale(${scale})`; }
+      btnPlus.onclick = () => { scale = Math.min(scale + 0.25, 5); apply(); };
+      btnMinus.onclick = () => { scale = Math.max(scale - 0.25, 0.25); apply(); };
+      btnReset.onclick = () => { scale = 1; apply(); };
+      controls.append(btnPlus, btnMinus, btnReset);
+      el.append(controls, inner);
+      el.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) {
+          e.preventDefault();
+          scale = Math.min(Math.max(scale + (e.deltaY < 0 ? 0.15 : -0.15), 0.25), 5);
+          apply();
+        }
+      }, { passive: false });
+      return { el, inner };
     }
 
     function switchTab(tab) { activeTab = tab; renderContent(); }
 
     document.getElementById('send').onclick = sendFiles;
-    document.getElementById('stop-btn').onclick = stopAll;
+    document.getElementById('export-btn').onclick = exportAll;
+
+    function _csvCell(val) {
+      const s = String(val == null ? '' : val);
+      if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes(';')) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    function _formatNextSteps(ns) {
+      if (!ns || !ns.length) return '';
+      return ns.map(n => n.label ? n.to + ' (' + n.label + ')' : String(n.to)).join(', ');
+    }
+
+    function exportAll() {
+      const ready = results.filter(r => r.json && !r.json.error);
+      if (!ready.length) return alert('Нет готовых результатов для экспорта');
+
+      const sep = ';';
+      const header = ['Файл', 'Тип диаграммы', 'Описание', '№', 'Действие', 'Тип', 'Роль', 'Следующие шаги'];
+      const rows = [header.join(sep)];
+
+      for (const r of ready) {
+        const j = r.json;
+        for (const s of (j.steps || [])) {
+          rows.push([
+            _csvCell(r.name),
+            _csvCell(j.diagram_type),
+            _csvCell(j.description),
+            _csvCell(s.step),
+            _csvCell(s.action),
+            _csvCell(s.type),
+            _csvCell(s.role),
+            _csvCell(_formatNextSteps(s.next_steps)),
+          ].join(sep));
+        }
+      }
+
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'diagram_results.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    document.getElementById('tab-table').onclick = () => switchTab('table');
     document.getElementById('tab-json').onclick = () => switchTab('json');
     document.getElementById('tab-image').onclick = () => switchTab('image');
     document.getElementById('tab-diagram').onclick = () => switchTab('diagram');
+
+    function renderTable(json, container) {
+      if (!json || !json.steps || !json.steps.length) {
+        const div = document.createElement('div');
+        div.className = 'status';
+        div.textContent = 'Нет данных';
+        container.appendChild(div);
+        return;
+      }
+      const hasRoles = json.steps.some(s => s.role);
+
+      if (json.description) {
+        const desc = document.createElement('div');
+        desc.className = 'table-desc';
+        desc.textContent = (json.diagram_type ? json.diagram_type.toUpperCase() + ' — ' : '') + json.description;
+        container.appendChild(desc);
+      }
+
+      const table = document.createElement('table');
+      table.className = 'steps-table';
+
+      const thead = document.createElement('thead');
+      let hhtml = '<tr><th class="col-num">№</th><th>Наименование действия</th>';
+      if (hasRoles) hhtml += '<th class="col-role">Роль</th>';
+      hhtml += '<th>Следующие шаги</th></tr>';
+      thead.innerHTML = hhtml;
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      json.steps.forEach((s, i) => {
+        const tr = document.createElement('tr');
+        const num = s.step != null ? s.step : (i + 1);
+        const tdNum = document.createElement('td');
+        tdNum.className = 'col-num';
+        tdNum.textContent = num;
+        tr.appendChild(tdNum);
+
+        const tdAction = document.createElement('td');
+        tdAction.textContent = s.action || '—';
+        if (s.type && s.type !== 'task') {
+          const badge = document.createElement('span');
+          badge.className = 'type-badge type-' + s.type;
+          badge.textContent = s.type;
+          tdAction.appendChild(badge);
+        }
+        tr.appendChild(tdAction);
+
+        if (hasRoles) {
+          const tdRole = document.createElement('td');
+          tdRole.className = 'col-role';
+          tdRole.textContent = s.role || '—';
+          tr.appendChild(tdRole);
+        }
+
+        const tdNext = document.createElement('td');
+        const ns = s.next_steps || [];
+        if (ns.length) {
+          tdNext.textContent = ns.map(n => n.label ? n.to + ' (' + n.label + ')' : String(n.to)).join(', ');
+        } else {
+          tdNext.textContent = '—';
+        }
+        tr.appendChild(tdNext);
+
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+    function stepsToMermaid(data) {
+      const steps = data.steps || [];
+      if (!steps.length) return null;
+      const lines = ['graph TD'];
+      const esc = s => String(s).replace(/"/g, '#quot;');
+      for (const s of steps) {
+        const id = 'N' + String(s.step != null ? s.step : s.id);
+        const action = esc(s.action || '...');
+        const t = s.type || 'task';
+        if (t === 'start' || t === 'end') {
+          lines.push(`    ${id}(["${action}"])`);
+        } else if (t === 'decision') {
+          lines.push(`    ${id}{"${action}"}`);
+        } else {
+          lines.push(`    ${id}["${action}"]`);
+        }
+      }
+      for (const s of steps) {
+        const src = 'N' + String(s.step != null ? s.step : s.id);
+        for (const ns of (s.next_steps || [])) {
+          const dst = 'N' + String(ns.to);
+          const lbl = ns.label ? ` -->|"${esc(ns.label)}"| ` : ' --> ';
+          lines.push(`    ${src}${lbl}${dst}`);
+        }
+      }
+      return lines.join('\n');
+    }
+
+    let mermaidCounter = 0;
+
+    async function renderMermaidFromJson(json, container) {
+      if (!json || !json.steps || !json.steps.length) {
+        const div = document.createElement('div');
+        div.className = 'status';
+        div.textContent = 'Нет данных для построения диаграммы';
+        container.appendChild(div);
+        return;
+      }
+      const code = stepsToMermaid(json);
+      if (!code) return;
+      try {
+        mermaidCounter++;
+        const { svg } = await mermaid.render('mmd-' + mermaidCounter, code);
+        container.innerHTML = svg;
+      } catch(e) {
+        const pre = document.createElement('pre');
+        pre.textContent = code;
+        container.appendChild(pre);
+      }
+    }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({startOnLoad: false, theme: 'dark'});</script>
 </body>
 </html>

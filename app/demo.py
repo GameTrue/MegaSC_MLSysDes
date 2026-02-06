@@ -1,11 +1,13 @@
+import asyncio
+
 import gradio as gr
 from app import model
 from app.prompt import PROMPT_TEMPLATE
 from app.postprocess import to_response
 
 
-def predict(image):
-    text = model.infer(image, PROMPT_TEMPLATE)
+async def predict(image):
+    text = await model.infer(image, PROMPT_TEMPLATE)
     parsed = to_response(text)
     steps = "\n".join(f"{s.step}. {s.action}" + (f" ({s.role})" if s.role else "") for s in parsed.steps)
     return parsed.diagram_type, parsed.description, steps

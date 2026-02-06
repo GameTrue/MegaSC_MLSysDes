@@ -1,6 +1,7 @@
 """Programmatic extraction of draw.io graph from SVG files with mxGraphModel metadata."""
 
 import base64
+import logging
 import re
 import xml.etree.ElementTree as ET
 import zlib
@@ -8,6 +9,8 @@ from typing import Optional
 from urllib.parse import unquote
 
 from app.schemas import AnalyzeResponse, Step
+
+logger = logging.getLogger(__name__)
 
 
 def is_drawio_svg(file_bytes: bytes) -> bool:
@@ -142,6 +145,7 @@ def extract_drawio_svg(file_bytes: bytes) -> Optional[AnalyzeResponse]:
 
     model = _find_mxgraph_model(file_bytes)
     if model is None:
+        logger.debug("draw.io SVG detected but mxGraphModel not found")
         return None
 
     # Collect all mxCell elements
@@ -198,6 +202,7 @@ def extract_drawio_svg(file_bytes: bytes) -> Optional[AnalyzeResponse]:
                 })
 
     if not nodes:
+        logger.debug("draw.io SVG parsed but no nodes found")
         return None
 
     # Build incoming/outgoing sets for start/end classification
@@ -277,6 +282,7 @@ def extract_drawio_svg(file_bytes: bytes) -> Optional[AnalyzeResponse]:
     if not steps:
         return None
 
+    logger.info("Draw.io SVG: extracted %d steps, %d swimlanes", len(steps), len(swimlanes))
     lane_names = [name for name in swimlanes.values() if name]
     description = (
         f"Draw.io диаграмма: {', '.join(lane_names)}" if lane_names

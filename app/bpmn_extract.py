@@ -1,11 +1,14 @@
 """Programmatic extraction of BPMN graph from bpmn-js generated SVG files."""
 
+import logging
 import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from typing import Optional
 
 from app.schemas import AnalyzeResponse, Step
+
+logger = logging.getLogger(__name__)
 
 # Duplicated from preprocess.py to avoid circular import
 _RU_SHORT_WORDS = {
@@ -181,6 +184,7 @@ def extract_bpmn_svg(file_bytes: bytes) -> Optional[AnalyzeResponse]:
     try:
         root = ET.fromstring(file_bytes)
     except ET.ParseError:
+        logger.warning("Failed to parse bpmn-js SVG XML", exc_info=True)
         return None
 
     # Collect all <g> elements with data-element-id
@@ -396,8 +400,10 @@ def extract_bpmn_svg(file_bytes: bytes) -> Optional[AnalyzeResponse]:
         ))
 
     if not steps:
+        logger.debug("BPMN SVG parsed but no steps extracted")
         return None
 
+    logger.info("BPMN SVG: extracted %d steps, %d lanes", len(steps), len(lanes))
     lane_names = [lane.name for lane in lanes if lane.name]
     description = f"BPMN-диаграмма: {', '.join(lane_names)}" if lane_names else "BPMN-диаграмма"
 

@@ -1,3 +1,4 @@
+import logging
 import math
 import re
 import xml.etree.ElementTree as ET
@@ -5,6 +6,8 @@ from io import BytesIO
 from typing import List, Optional
 
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 from app.bpmn_extract import extract_bpmn_svg
 from app.drawio_extract import extract_drawio_svg
@@ -128,6 +131,7 @@ def ocr_extract_text(image: Image.Image) -> Optional[str]:
     try:
         raw = pytesseract.image_to_string(image, lang="rus+eng")
     except Exception:
+        logger.warning("OCR extraction failed", exc_info=True)
         return None
 
     if not raw or not raw.strip():
@@ -262,6 +266,7 @@ def load_image(file_bytes: bytes) -> tuple[List[Image.Image], Optional[str], Opt
     extracted_text is set for non-bpmn SVG files.
     """
     fmt = detect_format(file_bytes)
+    logger.debug("Detected format: %s (%d bytes)", fmt, len(file_bytes))
 
     if fmt == "pdf":
         pages, extracted = pdf_to_images(file_bytes)

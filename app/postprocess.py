@@ -1,8 +1,16 @@
 import json
+import logging
 import re
 from typing import Any, Dict, List, Union
 
 from app.schemas import AnalyzeResponse, Step
+
+logger = logging.getLogger(__name__)
+
+
+def _fix_json_escapes(text: str) -> str:
+    """Fix invalid JSON escape sequences (e.g. \\G → \\\\G)."""
+    return re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', text)
 
 
 def extract_json(text: str) -> Dict[str, Any]:
@@ -14,11 +22,18 @@ def extract_json(text: str) -> Dict[str, Any]:
     if start == -1 or end == -1 or end <= start:
         return {}
     snippet = text[start : end + 1]
-    for cand in [snippet, re.sub(r'(?<=[{,\[])\s*(\w+)\s*:', r' "\1":', snippet)]:
+    candidates = [
+        snippet,
+        _fix_json_escapes(snippet),
+        re.sub(r'(?<=[{,\[])\s*(\w+)\s*:', r' "\1":', snippet),
+        _fix_json_escapes(re.sub(r'(?<=[{,\[])\s*(\w+)\s*:', r' "\1":', snippet)),
+    ]
+    for cand in candidates:
         try:
             return json.loads(cand)
         except Exception:
             continue
+    logger.warning("Failed to extract JSON from model output (len=%d): %.200s", len(text), text)
     return {}
 
 

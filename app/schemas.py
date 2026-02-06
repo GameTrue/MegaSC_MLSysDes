@@ -16,6 +16,14 @@ class AnalyzeResponse(BaseModel):
     steps: List[Step]
 
 
+class GenerateRequest(BaseModel):
+    text: str = Field(..., description="Text description of the algorithm/process")
+
+
+class GenerateResponse(BaseModel):
+    mermaid: str = Field(..., description="Mermaid diagram code")
+
+
 class HealthResponse(BaseModel):
     status: str
     model: str
