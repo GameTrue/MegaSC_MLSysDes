@@ -59,15 +59,20 @@ def infer(image, prompt: str, extracted_text: str | None = None) -> str:
 
     # LM Studio path (OpenAI-compatible vision API)
     if settings.use_lmstudio:
-        buffered = BytesIO()
-        image.save(buffered, format="PNG")
-        b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        # Normalize to list of images
+        images = image if isinstance(image, list) else [image]
+        is_tiled = len(images) > 1
 
         headers = {"Content-Type": "application/json"}
         if settings.lmstudio_token:
             headers["Authorization"] = f"Bearer {settings.lmstudio_token}"
 
         full_prompt = prompt
+        if is_tiled:
+            full_prompt = (
+                f"Это одна диаграмма, разделённая на {len(images)} частей с перекрытием. "
+                "Проанализируй как единое целое.\n\n" + full_prompt
+            )
         if extracted_text:
             full_prompt += (
                 "\n\nИз файла извлечён следующий текст (используй его как ТОЧНЫЙ справочник"
@@ -75,15 +80,20 @@ def infer(image, prompt: str, extracted_text: str | None = None) -> str:
                 "---\n" + extracted_text + "\n---"
             )
 
+        content = []
+        for img in images:
+            buffered = BytesIO()
+            img.save(buffered, format="PNG")
+            b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            content.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}})
+        content.append({"type": "text", "text": full_prompt})
+
         payload = {
             "model": settings.model_id,
             "messages": [
                 {
                     "role": "user",
-                    "content": [
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}},
-                        {"type": "text", "text": full_prompt},
-                    ],
+                    "content": content,
                 },
             ],
             "temperature": settings.temperature,
@@ -106,11 +116,14 @@ def infer(image, prompt: str, extracted_text: str | None = None) -> str:
     # Local HF model path
     import torch
 
+    # Use first tile only — local HF multi-image is model-specific
+    single_image = image[0] if isinstance(image, list) else image
+
     bundle = get_model_bundle()
     model = bundle["model"]
     processor = bundle["processor"]
     first_param_device = next(model.parameters()).device
-    inputs = processor(images=image, text=prompt, return_tensors="pt")
+    inputs = processor(images=single_image, text=prompt, return_tensors="pt")
     inputs = {k: v.to(first_param_device) for k, v in inputs.items()}
     generation = model.generate(
         **inputs,

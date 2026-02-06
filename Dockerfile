@@ -4,7 +4,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcairo2 && \
+    libcairo2 \
+    tesseract-ocr \
+    tesseract-ocr-rus && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

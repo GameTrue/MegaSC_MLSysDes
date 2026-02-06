@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse, HTMLResponse
 
 from app import model
 from app.config import settings
-from app.preprocess import load_image
+from app.preprocess import load_image, prepare_tiles, resize_image, stitch_tiles, HIRES_MAX_SIDE
 from app.postprocess import to_response
 from app.prompt import PROMPT_TEMPLATE
 from app.schemas import AnalyzeResponse, HealthResponse
@@ -31,20 +31,42 @@ def health():
 async def analyze(file: UploadFile = File(...)):
     try:
         content = await file.read()
-        images, extracted_text = load_image(content)
+        images, extracted_text, bpmn_response = load_image(content)
     except Exception:
         raise HTTPException(status_code=400, detail="Unsupported or invalid file format")
 
-    if len(images) == 1:
-        output_text = model.infer(images[0], PROMPT_TEMPLATE, extracted_text=extracted_text)
-        response = to_response(output_text)
-        body = response.model_dump()
+    # Programmatic BPMN extraction — skip model entirely
+    if bpmn_response:
+        body = bpmn_response.model_dump()
         body["preview"] = _image_to_data_url(images[0])
         return JSONResponse(status_code=200, content=body)
 
+    if len(images) == 1:
+        tiles = prepare_tiles(images[0])
+        if len(tiles) == 1:
+            infer_image = tiles[0]
+        else:
+            # High-res resize — чище чем склейка тайлов с перекрытием
+            infer_image = resize_image(images[0], max_side=HIRES_MAX_SIDE)
+
+        try:
+            output_text = model.infer(infer_image, PROMPT_TEMPLATE, extracted_text=extracted_text)
+        except Exception:
+            # Fallback: resized original at standard resolution
+            output_text = model.infer(resize_image(images[0]), PROMPT_TEMPLATE, extracted_text=extracted_text)
+
+        response = to_response(output_text)
+        body = response.model_dump()
+        body["preview"] = _image_to_data_url(resize_image(images[0]))
+        return JSONResponse(status_code=200, content=body)
+
+    # Multi-page PDF — each page is normal size, no tiling needed
     pages = []
     for idx, image in enumerate(images):
-        output_text = model.infer(image, PROMPT_TEMPLATE, extracted_text=extracted_text)
+        try:
+            output_text = model.infer(image, PROMPT_TEMPLATE, extracted_text=extracted_text)
+        except Exception:
+            output_text = model.infer(resize_image(image), PROMPT_TEMPLATE, extracted_text=extracted_text)
         response = to_response(output_text)
         page = {"page": idx + 1, **response.model_dump()}
         page["preview"] = _image_to_data_url(image)
@@ -58,12 +80,25 @@ async def analyze_batch(files: list[UploadFile] = File(...)):
     for file in files:
         try:
             content = await file.read()
-            images, extracted_text = load_image(content)
+            images, extracted_text, bpmn_response = load_image(content)
         except Exception:
             results.append({"filename": file.filename, "error": "invalid file"})
             continue
+        if bpmn_response:
+            results.append({"filename": file.filename, **bpmn_response.model_dump()})
+            continue
         for image in images:
-            output_text = model.infer(image, PROMPT_TEMPLATE, extracted_text=extracted_text)
+            tiles = prepare_tiles(image)
+            if len(tiles) == 1:
+                infer_image = tiles[0]
+            else:
+                infer_image = resize_image(image, max_side=HIRES_MAX_SIDE)
+
+            try:
+                output_text = model.infer(infer_image, PROMPT_TEMPLATE, extracted_text=extracted_text)
+            except Exception:
+                output_text = model.infer(resize_image(image), PROMPT_TEMPLATE, extracted_text=extracted_text)
+
             response = to_response(output_text)
             results.append({"filename": file.filename, **response.model_dump()})
     return {"count": len(results), "items": results}
