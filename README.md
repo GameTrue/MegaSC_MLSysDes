@@ -34,7 +34,7 @@
              │ XML        │    │  prepare_tiles()   │
              │ (без VLM)  │    │  + extracted_text  │
              └─────┬──────┘    │  VLM Inference     │
-                   │           │  Qwen2.5-VL-7B     │
+                   │           │  Qwen3-VL-8B       │
                    │           └─────────┬─────────┘
                    │                     │
                    │           ┌─────────▼─────────┐
@@ -72,15 +72,24 @@
 
 ## Быстрый старт
 
+### Предварительные требования
+
+Перед сборкой и запуском сервиса необходимо запустить модель в **LM Studio**:
+
+1. Откройте LM Studio и загрузите модель `Qwen3-VL-8B` (или совместимую VLM)
+2. Запустите локальный сервер в LM Studio (вкладка «Local Server»)
+3. Скопируйте адрес сервера (например, `http://192.168.1.10:1234`) и API-ключ
+4. Укажите эти значения в файле `.env` (см. ниже)
+
 ### Docker
 
 ```bash
-# 1. Создать .env
+# 1. Создать .env с ключами LM Studio
 cat > .env << 'EOF'
 USE_LMSTUDIO=1
 LMSTUDIO_BASE_URL=http://<YOUR_HOST>:<PORT>
 LMSTUDIO_TOKEN=<YOUR_TOKEN>
-MODEL_NAME=qwen/qwen2.5-vl-7b
+MODEL_NAME=qwen/qwen3-vl-8b
 EOF
 
 # 2. Запустить
@@ -170,7 +179,7 @@ curl -X POST http://localhost:8000/api/generate \
 ### `GET /health` — статус сервиса
 
 ```json
-{"status": "ok", "model": "qwen/qwen2.5-vl-7b", "device": "cpu"}
+{"status": "ok", "model": "qwen/qwen3-vl-8b", "device": "cpu"}
 ```
 
 ## Конфигурация
@@ -182,7 +191,7 @@ curl -X POST http://localhost:8000/api/generate \
 | `USE_LMSTUDIO` | `0` | `1` — inference через LM Studio (удалённо) |
 | `LMSTUDIO_BASE_URL` | `http://localhost:22227` | Адрес LM Studio API |
 | `LMSTUDIO_TOKEN` | — | Bearer-токен LM Studio |
-| `MODEL_NAME` | `Qwen/Qwen2-VL-7B-Instruct` | ID модели |
+| `MODEL_NAME` | `Qwen/Qwen3-VL-8B` | ID модели |
 | `TEMPERATURE` | `0` | Температура генерации |
 | `MAX_NEW_TOKENS` | `10000` | Макс. длина ответа |
 | `REQUEST_TIMEOUT` | `300` | Таймаут запроса к LM Studio (сек) |
@@ -203,7 +212,7 @@ curl -X POST http://localhost:8000/api/generate \
 ```bash
 # Прогон оценки
 python -m scripts.evaluate \
-  --test-dir "Диаграммы. 2 часть/Диаграммы. 2 часть/Picture" \
+  --test-dir "test" \
   --api-url http://localhost:8000/api/analyze \
   --format table
 ```
@@ -249,7 +258,7 @@ requirements.txt         # Python-зависимости
 
 | Компонент | Технология | Лицензия |
 |---|---|---|
-| VLM | Qwen2.5-VL-7B-Instruct (4-bit AWQ) | Apache 2.0 |
+| VLM | Qwen3-VL-8B | Apache 2.0 |
 | Inference runtime | LM Studio (удалённо) | — |
 | API | FastAPI + Uvicorn | MIT |
 | Препроцессинг | Pillow, CairoSVG, PyMuPDF, pytesseract | MIT / LGPL / AGPL |

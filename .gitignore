@@ -2,5 +2,23 @@
 .env
 __pycache__/
 *.pyc
+*.pyo
+
+# Course test data
 /Диаграммы. 2 часть
 /Диаграммы/Диаграммы
+
+# Images/docs in project root (not part of the app)
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.pptx
+*.docx
+*.csv
+*.svg
+photo_*
+
+# Misc
+for_present/
+.claude/

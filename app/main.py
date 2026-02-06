@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse, HTMLResponse
 
 from app import model
 from app.config import settings
-from app.preprocess import load_image, prepare_tiles, resize_image, stitch_tiles, HIRES_MAX_SIDE
+from app.preprocess import load_image, prepare_tiles, resize_image, HIRES_MAX_SIDE
 from app.postprocess import to_response
 from app.prompt import PROMPT_TEMPLATE, GENERATE_PROMPT
 from app.schemas import AnalyzeResponse, HealthResponse, GenerateRequest, GenerateResponse

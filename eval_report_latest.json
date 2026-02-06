@@ -3,13 +3,13 @@
     "total_files": 11,
     "evaluated": 11,
     "errors": 0,
-    "avg_node_precision": 0.851,
-    "avg_node_recall": 0.916,
-    "avg_action_similarity": 0.898,
-    "avg_role_accuracy": 0.0,
-    "avg_latency_s": 38.5,
-    "p50_latency_s": 18.2,
-    "p95_latency_s": 235.53
+    "avg_node_precision": 0.858,
+    "avg_node_recall": 0.965,
+    "avg_action_similarity": 0.945,
+    "avg_role_accuracy": 0.125,
+    "avg_latency_s": 18.24,
+    "p50_latency_s": 17.47,
+    "p95_latency_s": 32.23
   },
   "details": [
     {
@@ -20,7 +20,7 @@
       "action_similarity": 1.0,
       "role_accuracy": "n/a",
       "file": "135.png",
-      "latency_s": 21.03
+      "latency_s": 21.97
     },
     {
       "pred_nodes": 8,
@@ -30,27 +30,27 @@
       "action_similarity": 1.0,
       "role_accuracy": "n/a",
       "file": "149.png",
-      "latency_s": 18.2
+      "latency_s": 16.9
     },
     {
-      "pred_nodes": 1,
+      "pred_nodes": 8,
       "gt_nodes": 13,
       "node_precision": 1.0,
-      "node_recall": 0.077,
-      "action_similarity": 0.196,
+      "node_recall": 0.615,
+      "action_similarity": 0.703,
       "role_accuracy": 0.0,
       "file": "3.png",
-      "latency_s": 235.53
+      "latency_s": 17.47
     },
     {
-      "pred_nodes": 12,
+      "pred_nodes": 11,
       "gt_nodes": 8,
-      "node_precision": 0.667,
+      "node_precision": 0.727,
       "node_recall": 1.0,
       "action_similarity": 0.976,
       "role_accuracy": "n/a",
       "file": "45.png",
-      "latency_s": 24.21
+      "latency_s": 23.75
     },
     {
       "pred_nodes": 6,
@@ -60,27 +60,27 @@
       "action_similarity": 1.0,
       "role_accuracy": "n/a",
       "file": "48.png",
-      "latency_s": 15.86
+      "latency_s": 13.91
     },
     {
-      "pred_nodes": 8,
+      "pred_nodes": 7,
       "gt_nodes": 5,
-      "node_precision": 0.625,
+      "node_precision": 0.714,
       "node_recall": 1.0,
       "action_similarity": 1.0,
       "role_accuracy": "n/a",
       "file": "53.png",
-      "latency_s": 16.4
+      "latency_s": 14.87
     },
     {
-      "pred_nodes": 14,
+      "pred_nodes": 16,
       "gt_nodes": 8,
-      "node_precision": 0.571,
+      "node_precision": 0.5,
       "node_recall": 1.0,
-      "action_similarity": 0.819,
-      "role_accuracy": 0.0,
+      "action_similarity": 0.817,
+      "role_accuracy": 0.25,
       "file": "6.png",
-      "latency_s": 31.56
+      "latency_s": 32.23
     },
     {
       "pred_nodes": 7,
@@ -90,7 +90,7 @@
       "action_similarity": 0.968,
       "role_accuracy": "n/a",
       "file": "60.png",
-      "latency_s": 17.61
+      "latency_s": 17.83
     },
     {
       "pred_nodes": 4,
@@ -100,7 +100,7 @@
       "action_similarity": 1.0,
       "role_accuracy": "n/a",
       "file": "65.png",
-      "latency_s": 9.85
+      "latency_s": 9.86
     },
     {
       "pred_nodes": 9,
@@ -110,17 +110,17 @@
       "action_similarity": 0.998,
       "role_accuracy": "n/a",
       "file": "72.png",
-      "latency_s": 19.96
+      "latency_s": 18.9
     },
     {
       "pred_nodes": 6,
       "gt_nodes": 6,
       "node_precision": 1.0,
       "node_recall": 1.0,
-      "action_similarity": 0.922,
+      "action_similarity": 0.93,
       "role_accuracy": "n/a",
       "file": "9.png",
-      "latency_s": 13.29
+      "latency_s": 12.91
     }
   ]
 }

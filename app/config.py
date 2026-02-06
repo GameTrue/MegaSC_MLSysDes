@@ -6,11 +6,12 @@ import os
 class Settings(BaseModel):
     model_config = {"protected_namespaces": ()}
 
-    model_id: str = os.getenv("MODEL_NAME", "Qwen/Qwen2-VL-7B-Instruct")
+    model_id: str = os.getenv("MODEL_NAME", "Qwen/Qwen3-VL-8B")
     device: str = os.getenv("DEVICE", "cuda" if os.getenv("CUDA_VISIBLE_DEVICES", "") != "" else "cpu")
     max_new_tokens: int = int(os.getenv("MAX_NEW_TOKENS", "10000"))
     temperature: float = float(os.getenv("TEMPERATURE", "0"))
     top_p: float = float(os.getenv("TOP_P", "0.9"))
+    frequency_penalty: float = float(os.getenv("FREQUENCY_PENALTY", "0.5"))
     request_timeout: int = int(os.getenv("REQUEST_TIMEOUT", "300"))
     hf_token: str | None = os.getenv("HF_TOKEN")
     cache_dir: Path = Path(os.getenv("HF_CACHE", "~/.cache/huggingface")).expanduser()
