@@ -247,7 +247,8 @@ app/
 
 scripts/
 ├── benchmark.py         # Прогон модели на наборе изображений
-└── evaluate.py          # Сравнение с ground truth, метрики
+├── evaluate.py          # Сравнение с ground truth, метрики
+└── describe.py          # Генерация текстовых описаний из CSV через LLM
 
 Dockerfile               # Docker-образ (~200 МБ)
 docker-compose.yml       # docker compose up --build
