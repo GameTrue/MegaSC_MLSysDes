@@ -12,8 +12,9 @@ class Step(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     diagram_type: str
-    description: str
-    steps: List[Step]
+    table: str
+    raw: Optional[str] = None
+    steps: Optional[List[Step]] = None
 
 
 class HealthResponse(BaseModel):
