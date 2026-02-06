@@ -59,6 +59,11 @@
     }
     button:disabled { opacity: .4; cursor: not-allowed; }
     button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(14,165,233,0.35); }
+    #stop-btn {
+      background: linear-gradient(90deg, #b91c1c, #ef4444);
+      border-color: var(--error);
+      display: none;
+    }
     .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 14px; margin-top: 14px; height: 100%; min-height: 0; }
     .sidebar { border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.02); padding: 10px; max-height: 100%; overflow-y: auto; scrollbar-width: none; }
     .sidebar::-webkit-scrollbar { display: none; }
@@ -80,10 +85,11 @@
   <div class="shell">
     <div class="panel">
       <h1>Diagram Analyzer</h1>
-      <p class="lead">Прикрепите один или несколько файлов (PNG/JPG/WEBP) и получите структурированный JSON со связями шагов.</p>
+      <p class="lead">Прикрепите один или несколько файлов (PNG/JPG/WEBP/PDF/SVG) и получите структурированный JSON со связями шагов.</p>
       <div class="controls">
-        <input type="file" id="files" multiple accept="image/*">
+        <input type="file" id="files" multiple accept="image/*,.pdf,.svg">
         <button id="send">Отправить</button>
+        <button id="stop-btn">Остановить</button>
       </div>
       <div id="status" class="status"></div>
       <div class="layout">
@@ -103,6 +109,7 @@
     let results = [];
     let selected = 0;
     let activeTab = 'json';
+    let controllers = [];
 
     function renderList() {
       const list = document.getElementById('file-list');
@@ -119,16 +126,43 @@
 
     function renderContent() {
       const area = document.getElementById('content-area');
-      if (!results.length) { area.innerHTML = '<div class="status">Нет данных</div>'; return; }
+      if (!results.length) {
+        area.textContent = '';
+        const div = document.createElement('div');
+        div.className = 'status';
+        div.textContent = 'Нет данных';
+        area.appendChild(div);
+        return;
+      }
       const item = results[selected];
+      area.textContent = '';
+
       if (!item.json) {
-        area.innerHTML = '<div class="status">Обрабатываем...</div>';
+        const div = document.createElement('div');
+        div.className = 'status';
+        div.textContent = 'Обрабатываем...';
+        area.appendChild(div);
       } else if (activeTab === 'json') {
-        area.innerHTML = '<pre>'+JSON.stringify(item.json, null, 2)+'</pre>';
+        const pre = document.createElement('pre');
+        pre.textContent = JSON.stringify(item.json, null, 2);
+        area.appendChild(pre);
       } else if (activeTab === 'image') {
-        area.innerHTML = item.imgDataUrl ? '<img class="preview" src="'+item.imgDataUrl+'"/>' : '<div class="status">Нет изображения</div>';
+        if (item.imgDataUrl) {
+          const img = document.createElement('img');
+          img.className = 'preview';
+          img.src = item.imgDataUrl;
+          area.appendChild(img);
+        } else {
+          const div = document.createElement('div');
+          div.className = 'status';
+          div.textContent = 'Нет изображения';
+          area.appendChild(div);
+        }
       } else {
-        area.innerHTML = '<div class="status">Диаграмма (скоро)</div>';
+        const div = document.createElement('div');
+        div.className = 'status';
+        div.textContent = 'Диаграмма (скоро)';
+        area.appendChild(div);
       }
       document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
       document.getElementById('tab-'+activeTab).classList.add('active');
@@ -142,25 +176,38 @@
       });
     }
 
+    function setProcessing(active) {
+      document.getElementById('send').disabled = active;
+      document.getElementById('send').style.display = active ? 'none' : '';
+      document.getElementById('stop-btn').style.display = active ? 'inline-block' : 'none';
+    }
+
+    function stopAll() {
+      controllers.forEach(c => c.abort());
+      controllers = [];
+      setProcessing(false);
+      document.getElementById('status').textContent = 'Обработка остановлена';
+    }
+
     async function sendFiles() {
       const input = document.getElementById('files');
       if (!input.files.length) return alert('Выберите файл(ы)');
-      const btn = document.getElementById('send');
       const out = document.getElementById('status');
       results = [];
       selected = 0;
+      controllers = [];
       renderList();
       renderContent();
-      btn.disabled = true;
-      out.innerHTML = 'Отправляем и ждём ответ...';
+      setProcessing(true);
+      out.textContent = 'Отправляем и ждём ответ...';
 
       const files = Array.from(input.files);
-      const dataUrls = await Promise.all(files.map(readAsDataURL));
+      const dataUrls = await Promise.all(files.map(f => f.type.startsWith('image/') ? readAsDataURL(f) : null));
 
       const tasks = files.map((file, idx) => processFile(file, dataUrls[idx]));
       await Promise.all(tasks);
-      out.innerHTML = '';
-      btn.disabled = false;
+      out.textContent = '';
+      setProcessing(false);
     }
 
     async function processFile(file, dataUrl) {
@@ -169,18 +216,29 @@
       renderList();
       renderContent();
 
+      const controller = new AbortController();
+      controllers.push(controller);
+
       const form = new FormData();
       form.append('file', file);
       try {
-        const res = await fetch('/api/analyze', { method: 'POST', body: form });
+        const res = await fetch('/api/analyze', { method: 'POST', body: form, signal: controller.signal });
         const text = await res.text();
         let data;
         try { data = JSON.parse(text); } catch { data = { error: 'Невалидный JSON', raw: text }; }
         results[idx].json = data;
+        if (!results[idx].imgDataUrl && data.preview) {
+          results[idx].imgDataUrl = data.preview;
+        }
         results[idx].status = res.ok ? 'готово' : `ошибка ${res.status}`;
       } catch (e) {
-        results[idx].json = { error: String(e) };
-        results[idx].status = 'ошибка';
+        if (e.name === 'AbortError') {
+          results[idx].json = { error: 'Запрос отменён' };
+          results[idx].status = 'отменено';
+        } else {
+          results[idx].json = { error: String(e) };
+          results[idx].status = 'ошибка';
+        }
       }
       renderList();
       renderContent();
@@ -189,6 +247,7 @@
     function switchTab(tab) { activeTab = tab; renderContent(); }
 
     document.getElementById('send').onclick = sendFiles;
+    document.getElementById('stop-btn').onclick = stopAll;
     document.getElementById('tab-json').onclick = () => switchTab('json');
     document.getElementById('tab-image').onclick = () => switchTab('image');
     document.getElementById('tab-diagram').onclick = () => switchTab('diagram');

@@ -4,17 +4,17 @@ import base64
 from io import BytesIO
 
 import httpx
-import torch
-from transformers import AutoProcessor, AutoModelForCausalLM, BitsAndBytesConfig
 
 from app.config import settings
 
 
 @lru_cache(maxsize=1)
 def get_model_bundle() -> Dict[str, Any]:
-    # When using LM Studio or dummy, we don't load local HF model
     if settings.use_dummy or settings.use_lmstudio:
         return {"model": None, "processor": None}
+
+    import torch
+    from transformers import AutoProcessor, AutoModelForCausalLM, BitsAndBytesConfig
 
     quantization_config = None
     if settings.enable_bnb_int4 and settings.device.startswith("cuda"):
@@ -43,7 +43,7 @@ def get_model_bundle() -> Dict[str, Any]:
     return {"model": model, "processor": processor}
 
 
-def infer(image, prompt: str) -> str:
+def infer(image, prompt: str, extracted_text: str | None = None) -> str:
     # Dummy path for CI
     if settings.use_dummy:
         return """
@@ -57,7 +57,7 @@ def infer(image, prompt: str) -> str:
 }
 """.strip()
 
-    # LM Studio path
+    # LM Studio path (OpenAI-compatible vision API)
     if settings.use_lmstudio:
         buffered = BytesIO()
         image.save(buffered, format="PNG")
@@ -67,58 +67,45 @@ def infer(image, prompt: str) -> str:
         if settings.lmstudio_token:
             headers["Authorization"] = f"Bearer {settings.lmstudio_token}"
 
-        payload_primary = {
+        full_prompt = prompt
+        if extracted_text:
+            full_prompt += (
+                "\n\nИз файла извлечён следующий текст (используй его как ТОЧНЫЙ справочник"
+                " — копируй эти строки дословно в поле action):\n"
+                "---\n" + extracted_text + "\n---"
+            )
+
+        payload = {
             "model": settings.model_id,
-            "input": [
-                {"type": "image", "data_url": f"data:image/png;base64,{b64}"},
-                {"type": "text", "content": "Проанализируй диаграмму"},
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}},
+                        {"type": "text", "text": full_prompt},
+                    ],
+                },
             ],
-            "system_prompt": prompt,
             "temperature": settings.temperature,
             "top_p": settings.top_p,
+            "max_tokens": settings.max_new_tokens,
         }
 
-        url_primary = f"{settings.lmstudio_base_url}/api/v1/chat"
+        url = f"{settings.lmstudio_base_url}/v1/chat/completions"
         try:
-            resp = httpx.post(url_primary, json=payload_primary, headers=headers, timeout=settings.request_timeout)
+            resp = httpx.post(url, json=payload, headers=headers, timeout=settings.request_timeout)
         except httpx.TimeoutException:
             raise RuntimeError("LM Studio timeout. Increase REQUEST_TIMEOUT or reduce MAX_NEW_TOKENS.")
-
-        if resp.status_code == 404:
-            payload_fallback = {
-                "model": settings.model_id,
-                "messages": [
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": [
-                        {"type": "text", "text": "Проанализируй диаграмму"},
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}},
-                    ]},
-                ],
-                "temperature": settings.temperature,
-                "top_p": settings.top_p,
-                "max_tokens": settings.max_new_tokens,
-            }
-            resp = httpx.post(
-                f"{settings.lmstudio_base_url}/v1/chat/completions",
-                json=payload_fallback,
-                headers=headers,
-                timeout=settings.request_timeout,
-            )
 
         resp.raise_for_status()
         data = resp.json()
         if "choices" in data and data["choices"]:
             return data["choices"][0].get("message", {}).get("content", "") or data["choices"][0].get("text", "")
-        if "output" in data:
-            out = data["output"]
-            if isinstance(out, list) and out:
-                first = out[0]
-                if isinstance(first, dict):
-                    return first.get("content", "")
-                return str(first)
-        return str(data)
+        raise RuntimeError(f"Unexpected LM Studio response format: {data}")
 
     # Local HF model path
+    import torch
+
     bundle = get_model_bundle()
     model = bundle["model"]
     processor = bundle["processor"]

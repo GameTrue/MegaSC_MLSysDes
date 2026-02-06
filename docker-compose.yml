@@ -1,19 +1,7 @@
-version: "3.9"
 services:
   app:
     build: .
-    env_file:
-      - .env
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: ["gpu"]
-    environment:
-      - MODEL_NAME=Qwen/Qwen3-VL-8B
-      - ENABLE_BNB_INT4=1
+    env_file: [.env]
     ports:
       - "8000:8000"
       - "7860:7860"

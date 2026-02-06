@@ -14,7 +14,7 @@ def extract_json(text: str) -> Dict[str, Any]:
     if start == -1 or end == -1 or end <= start:
         return {}
     snippet = text[start : end + 1]
-    for cand in [snippet, re.sub(r"(\w+):", r'"\1":', snippet)]:
+    for cand in [snippet, re.sub(r'(?<=[{,\[])\s*(\w+)\s*:', r' "\1":', snippet)]:
         try:
             return json.loads(cand)
         except Exception:
