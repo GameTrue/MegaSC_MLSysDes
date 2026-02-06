@@ -203,11 +203,11 @@ curl -X POST http://localhost:8000/api/generate \
 
 | Метрика | Значение |
 |---|---|
-| Node Precision (avg) | **0.851** |
-| Node Recall (avg) | **0.916** |
-| Action Similarity (avg) | **0.898** |
-| Latency p50 | **18.2 сек** |
-| Latency p95 | **235.5 сек** |
+| Node Precision (avg) | **0.858** |
+| Node Recall (avg) | **0.965** |
+| Action Similarity (avg) | **0.945** |
+| Latency p50 | **17.5 сек** |
+| Latency p95 | **32.2 сек** |
 
 ```bash
 # Прогон оценки
