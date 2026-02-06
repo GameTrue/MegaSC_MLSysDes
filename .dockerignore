@@ -1,0 +1,36 @@
+.venv/
+.git/
+.claude/
+__pycache__/
+*.pyc
+*.pyo
+
+# Images and docs in project root
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+*.pptx
+*.docx
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Environment
+.env
+.env.*
+
+# Test data
+Examples/
+scripts/
+Диаграммы*/
+
+# Misc
+FIX_PLAN.md
+benchmark.json
+eval_report.json
+photo_*

@@ -1,0 +1,126 @@
+{
+  "summary": {
+    "total_files": 11,
+    "evaluated": 11,
+    "errors": 0,
+    "avg_node_precision": 0.851,
+    "avg_node_recall": 0.916,
+    "avg_action_similarity": 0.898,
+    "avg_role_accuracy": 0.0,
+    "avg_latency_s": 38.5,
+    "p50_latency_s": 18.2,
+    "p95_latency_s": 235.53
+  },
+  "details": [
+    {
+      "pred_nodes": 9,
+      "gt_nodes": 9,
+      "node_precision": 1.0,
+      "node_recall": 1.0,
+      "action_similarity": 1.0,
+      "role_accuracy": "n/a",
+      "file": "135.png",
+      "latency_s": 21.03
+    },
+    {
+      "pred_nodes": 8,
+      "gt_nodes": 8,
+      "node_precision": 1.0,
+      "node_recall": 1.0,
+      "action_similarity": 1.0,
+      "role_accuracy": "n/a",
+      "file": "149.png",
+      "latency_s": 18.2
+    },
+    {
+      "pred_nodes": 1,
+      "gt_nodes": 13,
+      "node_precision": 1.0,
+      "node_recall": 0.077,
+      "action_similarity": 0.196,
+      "role_accuracy": 0.0,
+      "file": "3.png",
+      "latency_s": 235.53
+    },
+    {
+      "pred_nodes": 12,
+      "gt_nodes": 8,
+      "node_precision": 0.667,
+      "node_recall": 1.0,
+      "action_similarity": 0.976,
+      "role_accuracy": "n/a",
+      "file": "45.png",
+      "latency_s": 24.21
+    },
+    {
+      "pred_nodes": 6,
+      "gt_nodes": 3,
+      "node_precision": 0.5,
+      "node_recall": 1.0,
+      "action_similarity": 1.0,
+      "role_accuracy": "n/a",
+      "file": "48.png",
+      "latency_s": 15.86
+    },
+    {
+      "pred_nodes": 8,
+      "gt_nodes": 5,
+      "node_precision": 0.625,
+      "node_recall": 1.0,
+      "action_similarity": 1.0,
+      "role_accuracy": "n/a",
+      "file": "53.png",
+      "latency_s": 16.4
+    },
+    {
+      "pred_nodes": 14,
+      "gt_nodes": 8,
+      "node_precision": 0.571,
+      "node_recall": 1.0,
+      "action_similarity": 0.819,
+      "role_accuracy": 0.0,
+      "file": "6.png",
+      "latency_s": 31.56
+    },
+    {
+      "pred_nodes": 7,
+      "gt_nodes": 7,
+      "node_precision": 1.0,
+      "node_recall": 1.0,
+      "action_similarity": 0.968,
+      "role_accuracy": "n/a",
+      "file": "60.png",
+      "latency_s": 17.61
+    },
+    {
+      "pred_nodes": 4,
+      "gt_nodes": 4,
+      "node_precision": 1.0,
+      "node_recall": 1.0,
+      "action_similarity": 1.0,
+      "role_accuracy": "n/a",
+      "file": "65.png",
+      "latency_s": 9.85
+    },
+    {
+      "pred_nodes": 9,
+      "gt_nodes": 9,
+      "node_precision": 1.0,
+      "node_recall": 1.0,
+      "action_similarity": 0.998,
+      "role_accuracy": "n/a",
+      "file": "72.png",
+      "latency_s": 19.96
+    },
+    {
+      "pred_nodes": 6,
+      "gt_nodes": 6,
+      "node_precision": 1.0,
+      "node_recall": 1.0,
+      "action_similarity": 0.922,
+      "role_accuracy": "n/a",
+      "file": "9.png",
+      "latency_s": 13.29
+    }
+  ]
+}
